@@ -1,7 +1,18 @@
-import { Star, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Star,
+  ChevronLeft,
+  ChevronRight,
+  Users,
+  ThumbsUp,
+  Award,
+  ShoppingBag,
+  Sparkles,
+} from "lucide-react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import luxuryBg from "@/assets/luxury-bg.jpg";
+import { videoReviews as initialVideoReviews } from "@/data/products";
 
 const reviews = [
   {
@@ -50,10 +61,138 @@ const reviews = [
     location: "Doha, Qatar",
   },
 ];
-
+interface Review {
+  id: number;
+  name: string;
+  nameArabic: string;
+  product: string;
+  rating: number;
+  helpful: number;
+  verified: boolean;
+  location: string;
+  comment: string;
+  video?: string;
+  avatar: string;
+  date: string;
+  productImage?: string;
+}
 const ReviewsSection = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [selectedFilter, setSelectedFilter] = useState("all");
+  const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+
+  const [videoReviews, setVideoReviews] =
+    useState<Review[]>(initialVideoReviews);
+  // At the top, add this hook to detect mobile
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const stats = [
+    {
+      icon: <Star className="w-6 h-6" />,
+      value: "4.9",
+      label: "Average Rating",
+    },
+    {
+      icon: <Users className="w-6 h-6" />,
+      value: "10,000+",
+      label: "Happy Customers",
+    },
+    {
+      icon: <ThumbsUp className="w-6 h-6" />,
+      value: "98%",
+      label: "Satisfaction Rate",
+    },
+    {
+      icon: <Award className="w-6 h-6" />,
+      value: "5,000+",
+      label: "5-Star Reviews",
+    },
+  ];
+
+  const nextVideo = () => {
+    if (isAnimating) return;
+    setIsAnimating(true);
+    setCurrentVideoIndex((prev) => (prev + 1) % videoReviews.length);
+    setTimeout(() => setIsAnimating(false), 600);
+  };
+
+  const prevVideo = () => {
+    if (isAnimating) return;
+    setIsAnimating(true);
+    setCurrentVideoIndex(
+      (prev) => (prev - 1 + videoReviews.length) % videoReviews.length
+    );
+    setTimeout(() => setIsAnimating(false), 600);
+  };
+
+  const getYouTubeEmbedURL = (url?: string) => {
+    if (!url) return "";
+    const regExp =
+      /(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+    const match = url.match(regExp);
+    return match
+      ? `https://www.youtube.com/embed/${match[1]}?autoplay=0&controls=1`
+      : "";
+  };
+
+  // 3D Carousel Style Function
+  const getVideoCardStyle = (index: number) => {
+    const diff =
+      (index - currentVideoIndex + videoReviews.length) % videoReviews.length;
+    const totalCards = videoReviews.length;
+
+    if (diff === 0) {
+      return {
+        transform: "translateX(0%) scale(1) rotateY(0deg)",
+        opacity: 1,
+        zIndex: 30,
+        filter: "brightness(1)",
+      };
+    } else if (diff === 1) {
+      return {
+        transform: "translateX(85%) scale(0.85) rotateY(-25deg)",
+        opacity: 0.7,
+        zIndex: 20,
+        filter: "brightness(0.8)",
+      };
+    } else if (diff === 2) {
+      return {
+        transform: "translateX(170%) scale(0.75) rotateY(-35deg)",
+        opacity: 0.5,
+        zIndex: 10,
+        filter: "brightness(0.6)",
+      };
+    } else if (diff === totalCards - 1) {
+      return {
+        transform: "translateX(-85%) scale(0.85) rotateY(25deg)",
+        opacity: 0.7,
+        zIndex: 20,
+        filter: "brightness(0.8)",
+      };
+    } else if (diff === totalCards - 2) {
+      return {
+        transform: "translateX(-170%) scale(0.75) rotateY(35deg)",
+        opacity: 0.5,
+        zIndex: 10,
+        filter: "brightness(0.6)",
+      };
+    }
+    return {
+      transform: "translateX(0%) scale(0.5)",
+      opacity: 0,
+      zIndex: 0,
+      filter: "brightness(0.5)",
+    };
+  };
 
   const nextSlide = () => {
     if (isAnimating) return;
@@ -150,125 +289,249 @@ const ReviewsSection = () => {
         </div>
 
         {/* 3D Carousel Container */}
-        <div className="relative h-[600px] mb-12">
-          {/* Perspective container */}
+        <div className=" relative overflow-hidden">
           <div
-            className="relative w-full h-full flex items-center justify-center"
-            style={{ perspective: "2000px" }}
-          >
-            {/* Cards */}
-            {reviews.map((review, index) => {
-              const style = getCardStyle(index);
-              const isCenter =
-                (index - currentIndex + reviews.length) % reviews.length === 0;
-
-              return (
-                <div
-                  key={index}
-                  className="absolute w-full max-w-md transition-all duration-700 ease-out"
-                  style={{
-                    ...style,
-                    transformStyle: "preserve-3d",
-                    transformOrigin: "center center",
-                  }}
-                >
+            className="absolute inset-0 opacity-5"
+            style={{
+              backgroundImage: `url(${luxuryBg})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            }}
+          />
+          <div className="container mx-auto px-4 relative z-10">
+            {/* Mobile vertical scroll */}
+            {isMobile && (
+              <div className="md:hidden flex flex-col gap-6 overflow-y-auto h-screen snap-y snap-mandatory px-4">
+                {videoReviews.map((review) => (
                   <div
-                    className={`bg-card rounded-3xl overflow-hidden shadow-2xl ${
-                      isCenter ? "ring-2 ring-primary/50" : ""
-                    }`}
-                    style={{
-                      height: "550px",
-                      boxShadow: isCenter
-                        ? "0 25px 50px -12px rgba(0, 0, 0, 0.4)"
-                        : "0 10px 30px -5px rgba(0, 0, 0, 0.3)",
-                    }}
+                    key={review.id}
+                    className="snap-start w-full max-w-xs mx-auto h-[90vh] relative bg-black flex-shrink-0 rounded-2xl overflow-hidden"
                   >
-                    {/* Video/Image Placeholder */}
-                    <div className="relative h-[400px] bg-gradient-to-br from-primary/20 via-accent/20 to-primary/10 overflow-hidden">
-                      {/* Decorative overlay */}
-                      <div
-                        className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent"
-                        style={{
-                          background:
-                            "linear-gradient(180deg, rgb(28, 28, 28) 0%, rgba(28, 28, 28, 0) 40%)",
-                        }}
-                      />
-
-                      {/* Content */}
-                      <div className="relative z-10 h-full flex flex-col justify-between p-6">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h4 className="text-xl font-bold text-white mb-1 font-serif">
-                              {review.name}
-                            </h4>
-                            <p className="text-white/70 text-sm font-arabic">
-                              {review.nameArabic}
-                            </p>
-                          </div>
-                          <div className="flex gap-0.5">
-                            {[...Array(review.rating)].map((_, i) => (
-                              <Star
-                                key={i}
-                                className="w-4 h-4 fill-amber-400 text-amber-400"
-                              />
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-center flex-1">
-                          <div className="w-24 h-24 rounded-full bg-primary/30 backdrop-blur-sm flex items-center justify-center">
-                            <Star className="w-12 h-12 text-primary fill-primary/60" />
-                          </div>
-                        </div>
+                    {review.video ? (
+                      review.video.includes("youtube.com") ||
+                      review.video.includes("youtu.be") ? (
+                        <iframe
+                          src={getYouTubeEmbedURL(review.video)}
+                          title={review.name}
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          className="w-full h-full rounded-3xl"
+                        />
+                      ) : (
+                        <video
+                          src={review.video}
+                          controls
+                          className="w-full h-full object-cover rounded-3xl"
+                        />
+                      )
+                    ) : (
+                      <div className="flex items-center justify-center w-full h-full bg-black/50 text-white">
+                        No video available
                       </div>
-                    </div>
+                    )}
 
-                    {/* Review Content */}
-                    <div className="p-6 bg-card">
-                      <p className="text-card-foreground/90 italic mb-4 line-clamp-3">
-                        "{review.comment}"
-                      </p>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-semibold text-primary">
-                            {review.product}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {review.location}
+                    {/* Overlay info */}
+                    <div className="absolute bottom-4 left-4 right-4 text-white z-10">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center font-bold">
+                          {review.avatar}
+                        </div>
+                        <div className="flex flex-col">
+                          <h3 className="font-bold text-lg flex items-center gap-2">
+                            {review.name}
+                            {/* Small perfume image */}
+                            <img
+                              src={review.productImage}
+                              alt={review.product}
+                              className="w-6 h-6 rounded-full object-cover"
+                            />
+                            {/* Buy Now button */}
+                          </h3>
+                          <p className="text-sm font-arabic">
+                            {review.nameArabic}{" "}
+                            <button className="ml-2 px-3 py-1 bg-primary text-white text-xs rounded-full hover:scale-105 transition-transform">
+                              Buy Now
+                            </button>
                           </p>
                         </div>
-                        <Badge
-                          variant="outline"
-                          className="font-script text-base"
-                        >
-                          Verified
-                        </Badge>
                       </div>
+                      <div className="flex items-center gap-1 mb-1">
+                        {[...Array(review.rating)].map((_, i) => (
+                          <Star
+                            key={i}
+                            className="w-4 h-4 fill-amber-400 text-amber-400"
+                          />
+                        ))}
+                      </div>
+                      <p className="text-sm line-clamp-2">"{review.comment}"</p>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                ))}
+              </div>
+            )}
 
-          {/* Navigation Buttons */}
-          <div className="absolute  left-1/2 -translate-x-1/2 flex gap-4 z-40">
-            <Button
-              onClick={prevSlide}
-              disabled={isAnimating}
-              size="icon"
-              className="w-12 h-12 rounded-full bg-primary hover:bg-primary-glow shadow-lg disabled:opacity-50"
-            >
-              <ChevronLeft className="w-6 h-6" />
-            </Button>
-            <Button
-              onClick={nextSlide}
-              disabled={isAnimating}
-              size="icon"
-              className="w-12 h-12 rounded-full bg-primary hover:bg-primary-glow shadow-lg disabled:opacity-50"
-            >
-              <ChevronRight className="w-6 h-6" />
-            </Button>
+            {/* Desktop 3D carousel */}
+            {!isMobile && (
+              <div
+                className="relative h-[700px] flex items-center justify-center"
+                style={{ perspective: "1500px" }}
+              >
+                {videoReviews.map((review, index) => {
+                  const style = getVideoCardStyle(index);
+                  const isCenter =
+                    (index - currentVideoIndex + videoReviews.length) %
+                      videoReviews.length ===
+                    0;
+
+                  return (
+                    <div
+                      key={review.id}
+                      className="absolute transition-all duration-700 ease-out w-full max-w-sm"
+                      style={{
+                        ...style,
+                        transformStyle: "preserve-3d",
+                        transformOrigin: "center center",
+                      }}
+                    >
+                      <div
+                        className={`relative bg-gradient-to-br from-card to-card/90 rounded-3xl overflow-hidden shadow-elegant ${
+                          isCenter ? "ring-4 ring-primary/50 shadow-glow" : ""
+                        }`}
+                        style={{ height: "650px" }}
+                      >
+                        {/* Video */}
+                        <div className="relative h-[500px] overflow-hidden">
+                          {review.video ? (
+                            review.video.includes("youtube.com") ||
+                            review.video.includes("youtu.be") ? (
+                              <iframe
+                                src={getYouTubeEmbedURL(review.video)}
+                                title={review.name}
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                                className="w-full h-full rounded-3xl"
+                              />
+                            ) : (
+                              <video
+                                src={review.video}
+                                controls
+                                className="w-full h-full object-cover rounded-3xl"
+                              />
+                            )
+                          ) : (
+                            <div className="flex items-center justify-center w-full h-full bg-black/50 text-white">
+                              No video available
+                            </div>
+                          )}
+
+                          {/* Top overlay */}
+                          <div className="absolute top-0 left-0 right-0 p-6 bg-gradient-to-b from-black/60 to-transparent z-10">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-white font-bold shadow-lg">
+                                  {review.avatar}
+                                </div>
+                                <div className="flex flex-col">
+                                  <h3 className="font-bold text-white flex items-center gap-2">
+                                    {review.name}
+                                  </h3>
+                                  <p className="text-xs text-white/80 font-arabic">
+                                    {review.nameArabic}
+                                  </p>
+                                </div>
+                              </div>
+                              {review.verified && (
+                                <div className="px-2 py-1 bg-green-500/90 text-white rounded-full text-xs font-semibold flex items-center gap-1">
+                                  <Award className="w-3 h-3" /> Verified
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Bottom overlay */}
+                        </div>
+
+                        {/* Video info */}
+                        <div className="p-2 bg-card ">
+                          <div className="flex items-center justify-between mb-2 ">
+                            <div className="flex  items-center gap-1 ">
+                              {[...Array(review.rating)].map((_, i) => (
+                                <Star
+                                  key={i}
+                                  className="w-5 h-5 fill-amber-400 text-amber-400"
+                                />
+                              ))}
+                            </div>
+                            <img
+                              src={review.productImage}
+                              alt={review.product}
+                              className="w-8 h-8 rounded-full object-cover"
+                            />
+                            <button className="group relative px-5 py-2.5 bg-primary text-white text-xs font-bold rounded-full shadow-glow hover:shadow-[0_0_30px_hsl(var(--primary-glow)/0.6)] transition-all duration-300 hover:scale-105 active:scale-95 overflow-hidden">
+                              <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+                              <span className="relative flex items-center gap-2">
+                                <ShoppingBag className="w-3.5 h-3.5" />
+                                Buy Now
+                                <Sparkles className="w-3 h-3" />
+                              </span>
+                            </button>
+                          </div>
+                          <div className="flex items-center justify-center mb-3 ">
+                            <div className="text-lg font-semibold text-primary flex items-center  gap-2">
+                              {review.product}
+                            </div>
+                            {/* <div className="absolute right-4 flex items-center gap-1 text-xs text-muted-foreground">
+                            <MapPin className="w-3 h-3" />{" "}
+                            {review.location.split(",")[0]}
+                          </div> */}
+                          </div>
+                          <p className="text-sm text-foreground/80 line-clamp-2 mb-3">
+                            "{review.comment}"
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Desktop Navigation */}
+                <button
+                  onClick={prevVideo}
+                  disabled={isAnimating}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-primary shadow-glow disabled:opacity-50 z-50 flex items-center justify-center transition-all hover:scale-110"
+                >
+                  <ChevronLeft className="w-7 h-7 text-white" />
+                </button>
+                <button
+                  onClick={nextVideo}
+                  disabled={isAnimating}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-primary shadow-glow disabled:opacity-50 z-50 flex items-center justify-center transition-all hover:scale-110"
+                >
+                  <ChevronRight className="w-7 h-7 text-white" />
+                </button>
+
+                {/* Dots */}
+                <div className="flex justify-center gap-2 mt-8">
+                  {videoReviews.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => {
+                        if (!isAnimating) {
+                          setIsAnimating(true);
+                          setCurrentVideoIndex(index);
+                          setTimeout(() => setIsAnimating(false), 600);
+                        }
+                      }}
+                      className={`transition-all duration-300 rounded-full ${
+                        index === currentVideoIndex
+                          ? "w-8 h-2 bg-primary"
+                          : "w-2 h-2 bg-primary/30 hover:bg-primary/50"
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
